@@ -212,3 +212,67 @@ class Mask(Transform):
             images.data = MaskTime(num_masks=int(rnd * 4), size=16)(images)
 
         return images
+
+
+class MaskFreq_fixed(SpectrogramTransform):
+    """Google SpecAugment frequency masking from https://arxiv.org/abs/1904.08779."""
+
+    def __init__(self, num_masks=1, size=20, start=None, val=None):
+        self.num_masks = num_masks
+        self.size = size
+        self.start = start
+        self.val = val
+
+    def encodes(self, sg: AudioSpectrogram) -> AudioSpectrogram:
+        channel_mean = sg.contiguous().view(sg.size(0), -1).mean(-1)[:, None, None]
+        mask_val = ifnone(self.val, channel_mean)
+        if sg.ndim == 4:
+          b, c, y, x = sg.shape
+          # Position of the first mask
+          start = ifnone(self.start, random.randint(0, y - self.size))
+          for _ in range(self.num_masks):
+              mask = torch.ones(self.size, x).cuda() * mask_val.cuda()
+              mask = mask.view(b, c, self.size, x)
+              #print("sg, mask:", sg.shape, mask.shape)
+              if not 0 <= start <= y - self.size:
+                  raise ValueError(
+                      f"Start value '{start}' out of range for AudioSpectrogram of shape {sg.shape}"
+                  )
+              sg[:, :, start : start + self.size, :] = mask
+              # Setting start position for next mask
+              start = random.randint(0, y - self.size)
+        else:
+          c, y, x = sg.shape
+          # Position of the first msk
+          start = ifnone(self.start, random.randint(0, y - self.size))
+          for _ in range(self.num_masks):
+              mask = torch.ones(self.size, x) * mask_val
+              if not 0 <= start <= y - self.size:
+                  raise ValueError(
+                      f"Start value '{start}' out of range for AudioSpectrogram of shape {sg.shape}"
+                  )
+              sg[:, start : start + self.size, :] = mask
+              # Setting start position for next mask
+              start = random.randint(0, y - self.size)
+        return sg
+
+
+class MaskTime_fixed(SpectrogramTransform):
+    """Google SpecAugment time masking from https://arxiv.org/abs/1904.08779."""
+
+    def __init__(self, num_masks=1, size=20, start=None, val=None):
+        self.num_masks = num_masks
+        self.size = size
+        self.start = start
+        self.val = val
+
+    def encodes(self, sg: AudioSpectrogram) -> AudioSpectrogram:
+        sg.data = torch.einsum("...ij->...ji", sg)
+        sg.data = MaskFreq_fixed(
+            self.num_masks,
+            self.size,
+            self.start,
+            self.val,
+        )(sg)
+        sg.data = torch.einsum("...ij->...ji", sg)
+        return sg
