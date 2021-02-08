@@ -1,5 +1,7 @@
 import torch
 import torchaudio
+from fastaudio.core.all import *
+from fastaudio.augment.all import *
 
 
 def random_power(images, power=1.5, c=0.7):
@@ -204,12 +206,12 @@ class Mask(Transform):
         # print(images[0].shape, images.dtype, rnd, int(rnd*8))
         # if isinstance(images, AudioSpectrogram):
         if rnd < 0.25:
-            images.data = MaskFreq(num_masks=int(rnd * 8), size=20)(images)
-            images.data = MaskTime(num_masks=int(rnd * 8), size=16)(images)
+            images.data = MaskFreq_fixed(num_masks=int(rnd * 8), size=20)(images)
+            images.data = MaskTime_fixed(num_masks=int(rnd * 8), size=16)(images)
         elif rnd < 0.5:
-            images.data = MaskFreq(num_masks=int(rnd * 4), size=20)(images)
+            images.data = MaskFreq_fixed(num_masks=int(rnd * 4), size=20)(images)
         elif rnd < 0.75:
-            images.data = MaskTime(num_masks=int(rnd * 4), size=16)(images)
+            images.data = MaskTime_fixed(num_masks=int(rnd * 4), size=16)(images)
 
         return images
 
