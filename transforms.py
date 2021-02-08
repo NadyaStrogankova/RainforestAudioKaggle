@@ -203,6 +203,7 @@ class Mask(Transform):
 
     def encodes(self, images: AudioSpectrogram) -> AudioSpectrogram:
         rnd = torch.rand(1)
+        print(rnd)
         # print(images[0].shape, images.dtype, rnd, int(rnd*8))
         # if isinstance(images, AudioSpectrogram):
         if rnd < 0.25:
@@ -213,6 +214,21 @@ class Mask(Transform):
         elif rnd < 0.75:
             images.data = MaskTime_fixed(num_masks=int(rnd * 4), size=16)(images)
 
+        return images
+
+from torchaudio.transforms import  FrequencyMasking, TimeMasking
+
+class Mask_via_torch(Transform):
+    """
+    Transform для рандомизации MaskFreq и MaskTime.
+    """
+
+    def __init__(self):
+        split_idx = None
+
+    def encodes(self, images: AudioSpectrogram) -> AudioSpectrogram:
+        images.data = FrequencyMasking(freq_mask_param=20, iid_masks=True)(images)
+        images.data = TimeMasking(time_mask_param=50, iid_masks=True)(images)
         return images
 
 
@@ -227,13 +243,18 @@ class MaskFreq_fixed(SpectrogramTransform):
 
     def encodes(self, sg: AudioSpectrogram) -> AudioSpectrogram:
         channel_mean = sg.contiguous().view(sg.size(0), -1).mean(-1)[:, None, None]
+        channel_mean = sg.mean(axis=2)
+        print(channel_mean.shape)
         mask_val = ifnone(self.val, channel_mean)
+        print("mask val", mask_val.shape)
         if sg.ndim == 4:
           b, c, y, x = sg.shape
           # Position of the first mask
           start = ifnone(self.start, random.randint(0, y - self.size))
           for _ in range(self.num_masks):
-              mask = torch.ones(self.size, x).cuda() * mask_val.cuda()
+              #print("1", torch.ones(self.size, c, x).shape)
+              mask = torch.stack([mask_val for i in range(self.size)], dim=2).cuda()
+              print(mask.shape)
               mask = mask.view(b, c, self.size, x)
               #print("sg, mask:", sg.shape, mask.shape)
               if not 0 <= start <= y - self.size:
