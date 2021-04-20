@@ -244,9 +244,9 @@ class MaskFreq_fixed(SpectrogramTransform):
     def encodes(self, sg: AudioSpectrogram) -> AudioSpectrogram:
         channel_mean = sg.contiguous().view(sg.size(0), -1).mean(-1)[:, None, None]
         channel_mean = sg.mean(axis=2)
-        print(channel_mean.shape)
+        #print(channel_mean.shape)
         mask_val = ifnone(self.val, channel_mean)
-        print("mask val", mask_val.shape)
+        #print("mask val", mask_val.shape)
         if sg.ndim == 4:
           b, c, y, x = sg.shape
           # Position of the first mask
