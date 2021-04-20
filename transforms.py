@@ -203,7 +203,7 @@ class Mask(Transform):
 
     def encodes(self, images: AudioSpectrogram) -> AudioSpectrogram:
         rnd = torch.rand(1)
-        print(rnd)
+        # print(rnd)
         # print(images[0].shape, images.dtype, rnd, int(rnd*8))
         # if isinstance(images, AudioSpectrogram):
         if rnd < 0.25:
@@ -254,7 +254,7 @@ class MaskFreq_fixed(SpectrogramTransform):
           for _ in range(self.num_masks):
               #print("1", torch.ones(self.size, c, x).shape)
               mask = torch.stack([mask_val for i in range(self.size)], dim=2).cuda()
-              print(mask.shape)
+              # print(mask.shape)
               mask = mask.view(b, c, self.size, x)
               #print("sg, mask:", sg.shape, mask.shape)
               if not 0 <= start <= y - self.size:
